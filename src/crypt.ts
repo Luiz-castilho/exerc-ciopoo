@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-export class crypt{
+export class Crypt{
      private rounds=10
     async encrypt(plain: string): Promise<string> {
         return await bcrypt.hash(plain, this.rounds)

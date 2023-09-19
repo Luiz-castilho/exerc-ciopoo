@@ -10,5 +10,5 @@ const user = new User('Maria', 'maria@mail.com', '1234')
 const app= new App()
 app.registerBike(bike)
 app.registerUser(user)
-app.doRent(bike.id, user.id)
+
 }
