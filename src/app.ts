@@ -5,24 +5,34 @@ import { Rent } from "./rent";
 import { User } from "./user";
 import { Location } from "./location";
 import crypto from 'crypto'
-
+import { BikenotfoundError } from "./errors/bikenotfoundError";
+import { UsernotfoundError } from "./errors/usernotfoundError";
+import { DuplicateuserError } from "./errors/duplicateuserError";
+import { RentnotfoundError } from "./errors/rentnotfoundError";
+import { UserdoesnotexistError } from "./errors/userdoesnotexist";
+import { BikeunvailableError } from "./errors/bikeunavailableError"
 export class App {
     users: User[] = []
     bikes: Bike[] = []
     rents: Rent[] = []
     crypt: Crypt = new Crypt()
 
-    findUser(email: string|undefined): User|undefined {
-        return this.users.find(user => user.email === email)
+    findUser(email: string): User {
+        const user = this.users.find(user => user.email === email)
+        if(!user) throw new UsernotfoundError
+        return user
     }
-    findBike(bikeid: string|undefined): Bike|undefined {
-        return this.bikes.find(bike => bike.id === bikeid)
+    findBike(bikeid: string): Bike {
+        const bike = this.bikes.find(bike => bike.id === bikeid)
+        if(!bike) throw new BikenotfoundError
+        return bike
+        
     }
 
     async registerUser(user: User): Promise<string> {
         for (const rUser of this.users) {
             if (rUser.email === user.email) {
-                throw new Error('Duplicate user.')
+                throw new DuplicateuserError
             }
         }
         const newId = crypto.randomUUID()
@@ -35,7 +45,7 @@ export class App {
 
     async authenticate(userEmail: string, password: string): Promise<boolean> {
         const user = this.findUser(userEmail)
-        if (!user) throw new Error('User not found.')
+        
         return await this.crypt.compare(password, user.password)
     }
 
@@ -52,34 +62,30 @@ export class App {
             this.users.splice(userIndex, 1)
             return
         }
-        throw new Error('User does not exist.')
+        throw new UserdoesnotexistError
     }
     
-    rentBike(bikeId: string|undefined|undefined, userEmail: string): void {
-        const bike = this.bikes.find(bike => bike.id === bikeId)
-        if (!bike) {
-            throw new Error('Bike not found.')
-        }
+    rentBike(bikeId: string, userEmail: string): void {
+        const bike = this.findBike(bikeId)
+        
         if (!bike.available) {
-            throw new Error('Unavailable bike.')
+            throw new BikeunvailableError
         }
         const user = this.findUser(userEmail)
-        if (!user) {
-            throw new Error('User not found.')
-        }
+        
         bike.available = false
         const newRent = new Rent(bike, user, new Date())
         this.rents.push(newRent)
     }
 
-    returnBike(bikeId: string|undefined, userEmail: string|undefined): number {
+    returnBike(bikeId: string, userEmail: string): number {
         const now = new Date()
         const rent = this.rents.find(rent =>
             rent.bike.id === bikeId &&
             rent.user.email === userEmail &&
             !rent.end
         )
-        if (!rent) throw new Error('Rent not found.')
+        if (!rent) throw new RentnotfoundError
         rent.end = now
         rent.bike.available = true
         const hours = diffHours(rent.end, rent.start)
@@ -98,13 +104,13 @@ export class App {
         return this.rents
     }
 
-    moveBikeTo(bikeId: string|undefined, location: Location) {
+    moveBikeTo(bikeId: string, location: Location) {
         const bike = this.findBike(bikeId)
         if(bike){
         bike.location.latitude = location.latitude
         bike.location.longitude = location.longitude
     }
-    else throw new Error("Bike not found");
+   
 }
     
     
